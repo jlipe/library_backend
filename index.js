@@ -21,6 +21,8 @@ mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true,
     console.log('error connection to MongoDB:', error.message)
   })
 
+mongoose.set('debug', true)
+
 const typeDefs = gql`
   type Author {
     id: ID!,
@@ -113,8 +115,7 @@ const resolvers = {
 
   Author: {
     bookCount: async (root) => {
-      const count = await Book.find({ author: { $in: [root.id] }}).countDocuments()
-      return count
+      return root.books.length
     }
   },
 
@@ -130,17 +131,21 @@ const resolvers = {
       let author = await Author.findOne({ name: args.author }).exec()
       if (!author) {
         author = new Author({ name: args.author })
-        try {
-          await author.save()
-        } catch (error) {
-          throw new UserInputError(error.message, {
-            invalidArgs: args
-          })
-        }
+        // try {
+        //   await author.save()
+        // } catch (error) {
+        //   throw new UserInputError(error.message, {
+        //     invalidArgs: args
+        //   })
+        // }
       }
       book.author = author
+      console.log('id', book.id)
+      author.books = author.books.concat(book.id)
+
 
       try {
+        await author.save()
         await book.save()
       } catch (error) {
         throw new UserInputError(error.message, {
